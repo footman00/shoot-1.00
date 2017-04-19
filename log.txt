@@ -1,0 +1,32 @@
+-----2017/4/19-----
+完成游戏进行界面的区域划分，实现测试点运动的功能，写了一个简单的往复直线运动。
+可以自行完成运动函数进行测试，运动函数书写的位置在Main.c中有标注，搜索“运动函数写在这里”即可
+
+1、类型定义，详细见内部注释
+	--Vector2D.h--
+	定义坐标（或者说向量）类型XY
+
+	--Main.c--
+	定义对象类型OB
+
+	--Matrix2D.h--
+	定义矩阵类型MX
+
+2、宏定义，详细见内部注释
+	--Main.c--
+	#define FIX(x)//由于右边有计分板，所以要对横坐标左移
+
+3、函数，详细见内部注释
+	--Main.c--
+	OB CreatPoint(float x, float y, float size);//创建一个点
+	XY MovePoint(float x0, float y0, float x1, float y1, float x2, float y2, float rate);//移动一个点
+
+	--Matrix2D.c--
+	MX CreatMx(float data[], int R, int C, int z); //创建矩阵
+	void FreeMx(float **p, int R); //释放矩阵
+	MX MultiMx(MX X, MX Y); //矩阵乘法
+
+4、其它
+	a.除了Main.c的c文件中的函数都待完成，已全部在对应头文件中声明
+	b.以上函数都可以按情况修改，比如创建矩阵的函数，现在对矩阵赋值的原始数据是一维数组，以后可能有其它情况
+	c.按R键可以重置点的位置
