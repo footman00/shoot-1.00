@@ -12,16 +12,28 @@
 #pragma comment (lib, "Alpha_Engine.lib")
 
 #define FIX(x) (x-AEGfxGetWinMaxX()*3.0 / 8.0) //由于右边有计分板，所以要对横坐标左移。点（FIX(0.0)，0.0）就相当于左边画面的中心。不要对已经FIX赋值过的变量使用，不然就是移两次了，比如a=FIX(b)，那么以后a就直接用。
+
 // ---------------------------------------------------------------------------
 // globals
 
 int gGameRunning = 1;
 
 typedef struct Object{ //对象
-	XY xy;
-	AEGfxVertexList*	pMesh;
+	XY xy; //对象中心坐标
+	AEGfxVertexList*	pMesh; //指向对象的指针
 }OB;
 
+typedef enum StepOfMove //控制运动函数步骤
+{
+	Step1,
+	Step2,
+	Step3,
+	Step4,
+	Step5,
+	Step6,
+	Step7,
+	Step8,
+} STEP; 
 // ---------------------------------------------------------------------------
 // Static function protoypes
 OB CreatPoint(float x, float y, float size);//创建一个点，x，y为坐标，size为尺寸，返回OB结构体
@@ -128,7 +140,7 @@ int WINAPI WinMain(HINSTANCE instanceH, HINSTANCE prevInstanceH, LPSTR command_l
 	AEGfxSetBackgroundColor(0.5f, 0.5f, 0.5f); //设置背景色
 
 
-	BOOL aStep1 = FALSE,aStep2 = FALSE; //运动步骤。未执行为FALSE
+	STEP eLineStep = Step1; //运动步骤控制
 	// Game Loop
 	while(gGameRunning)
 	{
@@ -209,19 +221,21 @@ int WINAPI WinMain(HINSTANCE instanceH, HINSTANCE prevInstanceH, LPSTR command_l
 
 
 		// ---------------------------------------------------------------------------
-		// 运动函数写在这里，在Game Loop外声明控制步骤的变量，步骤要倒着写。
-		// 封装成函数则要在Game Loop外声明指向步骤控制变量的BOOL指针，传递给函数。
+		// 运动函数写在这里，在Game Loop外声明控制步骤的变量。
+		// 封装成函数则要在Game Loop外声明指向步骤控制变量的枚举变量指针，传递给函数。
 
-		if (aStep2 == TRUE){ aStep1 = FALSE; aStep2 = FALSE; }//步骤2（最后一步）完成后重置
-
-		if (aStep1 == TRUE && aStep2 == FALSE){//如果步骤1完成则进行步骤2
-			dot.xy = MovePoint(dot.xy.x, dot.xy.y, FIX(100.0f), 200.0f, FIX(0.0f), 0.0f, 25.0f); //把点移动到（0.0，0.0）
-			if (fabs(dot.xy.x - FIX(0.0)) < 0.1 && fabs(dot.xy.y - 0.0) < 0.1) aStep2 = TRUE;//移动到终点结束
-		}
-
-		if (aStep1 == FALSE){//步骤1，写在最下面，↑上面步骤2
-			dot.xy = MovePoint(dot.xy.x, dot.xy.y, FIX(0.0f), 0.0f, FIX(100.0f), 200.0f, 25.0f); //把点移动到（100.0，200.0）
-			if (fabs(dot.xy.x - FIX(100.0)) < 0.1 && fabs(dot.xy.y - 200.0) < 0.1) aStep1 = TRUE;//移动到终点结束
+		switch (eLineStep){
+			case Step1: 
+				dot.xy = MovePoint(dot.xy.x, dot.xy.y, FIX(0.0f), 0.0f, FIX(100.0f), 200.0f, 25.0f); //把点移动到（100.0，200.0）
+				if (fabs(dot.xy.x - FIX(100.0)) < 0.1 && fabs(dot.xy.y - 200.0) < 0.1) eLineStep = Step2;//移动到终点结束 
+				break;
+			case Step2:
+				dot.xy = MovePoint(dot.xy.x, dot.xy.y, FIX(100.0f), 200.0f, FIX(0.0f), 0.0f, 25.0f); //把点移动到（0.0，0.0）
+				if (fabs(dot.xy.x - FIX(0.0)) < 0.1 && fabs(dot.xy.y - 0.0) < 0.1) eLineStep = Step3;//移动到终点结束 
+				break;
+			default: 
+				eLineStep = Step1;  //步骤2（最后一步）完成后重置
+				break;
 		}
 
 		// ---------------------------------------------------------------------------
@@ -316,23 +330,7 @@ OB CreatPoint(float x,float y,float size){
 	AE_ASSERT_MESG(dot.pMesh, "Failed to create mesh 2!!");
 	return dot;
 }
-OB CreatScoreboard(float x, float y, float size){//创建计分板
-	OB dot;
-	dot.xy.x = x; dot.xy.y = y;
-	//两个三角形组成一个正方形
-	AEGfxTriAdd(
-		-size, -size, 0x00FF00FF, 0.0f, 1.0f,
-		size, -size, 0x00FFFF00, 1.0f, 1.0f,
-		-size, size, 0x00F00FFF, 0.0f, 0.0f);
-	AEGfxTriAdd(
-		size, -size, 0x00FFFFFF, 1.0f, 1.0f,
-		size, size, 0x00FFFFFF, 1.0f, 0.0f,
-		-size, size, 0x00FFFFFF, 0.0f, 0.0f);
 
-	dot.pMesh = AEGfxMeshEnd();
-	AE_ASSERT_MESG(dot.pMesh, "Failed to create mesh 2!!");
-	return dot;
-}
 XY MovePoint(float x0, float y0, float x1, float y1, float x2, float y2, float rate){
 	XY xy;
 
