@@ -5,6 +5,7 @@
 
 #include "AEEngine.h"
 #include "Vector2D.h"
+#include "Matrix2D.h"
 
 // ---------------------------------------------------------------------------
 
@@ -36,8 +37,28 @@ typedef enum StepOfMove //控制运动函数步骤
 } STEP; 
 // ---------------------------------------------------------------------------
 // Static function protoypes
-OB CreatPoint(float x, float y, float size);//创建一个点，x，y为坐标，size为尺寸，返回OB结构体
-XY MovePoint(float x0, float y0, float x1, float y1, float x2, float y2, float rate);//移动一个点，x0，y0是移动的点的坐标；x1,y1是移动的起点坐标；x2，y2是终点坐标；rate控制速度，越大运动速度越慢，最小为1（瞬移），无最大，小数部分建议为0，否则有误差。返回坐标结构体，调用时赋值给要移动的点以更新坐标。
+
+/*
+创建一个点，x，y为坐标，size为尺寸，返回OB结构体
+*/
+OB CreatPoint(float x, float y, float size);
+
+
+/*
+移动一个点，x0，y0是移动的点的坐标；x1,y1是移动的起点坐标；x2，y2是终点坐标；
+rate控制速度，越大速度越小，必须大于1，无最大，小数部分一定要为0，否则有误差。
+返回坐标结构体，调用时赋值给要移动的点以更新坐标。
+*/
+XY MovePoint(float x0, float y0, float x1, float y1, float x2, float y2, float rate);
+
+
+/*
+直线运动，eLineStep为步骤控制变量的地址，dot为对象的地址，x，y为起点，length为运动距离，angle为角度，
+rate控制速度，越大速度越小，必须大于1，无最大，小数部分一定要为0，否则有误差。等于length时为每帧移动1单位距离。
+accbuf为有加速度情况下的速度变化量缓存地址，在GameLoop外声明
+acc控制加速度，越大加速度越小，必须大于1，无最大，小数部分一定要为0，否则有误差。等于rate时匀速，小于rate时加速,大于rate时减速。
+*/
+void LineMotion(STEP *eLineStep, OB *dot, float x, float y, float length, float angle, float rate, float *accbuf, float acc);
 // ---------------------------------------------------------------------------
 
 
@@ -141,6 +162,7 @@ int WINAPI WinMain(HINSTANCE instanceH, HINSTANCE prevInstanceH, LPSTR command_l
 
 
 	STEP eLineStep = Step1; //运动步骤控制
+	float accbuf = 0.0f;//加速度产生的速度变化量缓存
 	// Game Loop
 	while(gGameRunning)
 	{
@@ -174,6 +196,7 @@ int WINAPI WinMain(HINSTANCE instanceH, HINSTANCE prevInstanceH, LPSTR command_l
 
 		if (AEInputCheckCurr('R')){ //按R键重置位置
 			dot.xy.x = FIX(0.0); dot.xy.y = 0.0;
+			accbuf = 0.0;
 		}
 
 		// Blending mode
@@ -222,21 +245,9 @@ int WINAPI WinMain(HINSTANCE instanceH, HINSTANCE prevInstanceH, LPSTR command_l
 
 		// ---------------------------------------------------------------------------
 		// 运动函数写在这里，在Game Loop外声明控制步骤的变量。
-		// 封装成函数则要在Game Loop外声明指向步骤控制变量的枚举变量指针，传递给函数。
-
-		switch (eLineStep){
-			case Step1: 
-				dot.xy = MovePoint(dot.xy.x, dot.xy.y, FIX(0.0f), 0.0f, FIX(100.0f), 200.0f, 25.0f); //把点移动到（100.0，200.0）
-				if (fabs(dot.xy.x - FIX(100.0)) < 0.1 && fabs(dot.xy.y - 200.0) < 0.1) eLineStep = Step2;//移动到终点结束 
-				break;
-			case Step2:
-				dot.xy = MovePoint(dot.xy.x, dot.xy.y, FIX(100.0f), 200.0f, FIX(0.0f), 0.0f, 25.0f); //把点移动到（0.0，0.0）
-				if (fabs(dot.xy.x - FIX(0.0)) < 0.1 && fabs(dot.xy.y - 0.0) < 0.1) eLineStep = Step3;//移动到终点结束 
-				break;
-			default: 
-				eLineStep = Step1;  //步骤2（最后一步）完成后重置
-				break;
-		}
+		
+		LineMotion(&eLineStep, &dot, 0.0f, 0.0f, 485.0f, 45.0f, 485.0f, &accbuf, 50.0f);
+		
 
 		// ---------------------------------------------------------------------------
 
@@ -333,7 +344,6 @@ OB CreatPoint(float x,float y,float size){
 
 XY MovePoint(float x0, float y0, float x1, float y1, float x2, float y2, float rate){
 	XY xy;
-
 	//如果未移动到终点则继续移动
 	if (fabs(x2 - x0) > 0.1){
 		x0 += (x2 - x1) / rate;
@@ -343,4 +353,27 @@ XY MovePoint(float x0, float y0, float x1, float y1, float x2, float y2, float r
 	}
 	xy.x = x0; xy.y = y0;
 	return xy;
+}
+
+void LineMotion(STEP *eLineStep, OB *dot, float x, float y, float length, float angle, float rate,float *accbuf,float acc){
+	XY end;
+	end.x = FIX(x + length); end.y = y; //计算0角度终点
+
+	MX rotate = CreatRotateMx(x, y, angle);
+	end = MultiVec(rotate, end); //计算角度为angle时的终点
+	FreeMx(rotate.pMx, rotate.R);
+
+	float r;
+	r = length / (length / rate + *accbuf);//计算速度
+	*accbuf = *accbuf + 2.0*(length - acc*length / rate) / (acc*(acc - 1));//计算速度变化量，acc等于rate时匀速，小于rate时加速,大于rate时减速。
+
+	switch (*eLineStep){
+	case Step1:
+		(*dot).xy = MovePoint((*dot).xy.x, (*dot).xy.y, FIX(x), y, FIX(end.x), end.y, r); //把点移动到终点
+		if (fabs((*dot).xy.x - FIX(end.x)) < 0.1 && fabs((*dot).xy.y - end.y) <  0.1) *eLineStep = Step2;//移动到终点结束 
+		break;
+	default:
+		*eLineStep = Step1;  //步骤2（最后一步）完成后重置
+		break;
+	}
 }

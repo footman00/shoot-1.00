@@ -38,3 +38,15 @@
 1、类型定义，详细见内部注释
 	--Main.c--
 	定义了一个枚举类型STEP，用以控制运动函数执行步骤
+
+
+-----2017/4/28-----
+1、完成Matrix2D.c
+2、在Main.c中封装了一个直线运动函数，实现加速度
+/*
+直线运动，eLineStep为步骤控制变量的地址，dot为对象的地址，x，y为起点，length为运动距离，angle为角度，
+rate控制速度，越大速度越小，必须大于1，无最大，小数部分一定要为0，否则有误差。等于length时为每帧移动1单位距离。
+accbuf为有加速度情况下的速度变化量缓存地址，在GameLoop外声明
+acc控制加速度，越大加速度越小，必须大于1，无最大，小数部分一定要为0，否则有误差。等于rate时匀速，小于rate时加速,大于rate时减速。
+*/
+void LineMotion(STEP *eLineStep, OB *dot, float x, float y, float length, float angle, float rate, float *accbuf, float acc);

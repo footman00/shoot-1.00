@@ -2,7 +2,8 @@
 #define MATRIX2D_H
 
 #include "Vector2D.h"
-#include "stdio.h"
+#include <stdio.h>
+#include <math.h>
 
 typedef struct DynamicMatrix2D //动态矩阵，矩阵内容为浮点型
 {
@@ -19,39 +20,29 @@ void FreeMx(float **p, int R); //释放矩阵，p为首地址，R为列数
 /*
 将pResult设置为单位矩阵
 */
-void Matrix2DIdentity(MX *pResult);
+void SetIdentityMx(MX *pResult);
 
 /*
-计算pMtx的转置，并将结果放到pResult
+把pResult矩阵设置为其转置
 */
-void Matrix2DTranspose(MX *pResult, MX *pMtx);
+void SetTransposeMx(MX *pResult);
 
 /*
-pResult = pMtx0 * pMtx1
+生成一个平移矩阵并返回
 */
-void Matrix2DConcat(MX *pResult, MX *pMtx0, MX *pMtx1);
+MX CreatTranslateMx(float x, float y);
 
 /*
-将pResult设置为平移矩阵，平移位移为x和y 
+生成一个缩放矩阵并返回，x,y为基准点，sx和sy分别为水平和垂直方向的缩放比例，
 */
-void Matrix2DTranslate(MX *pResult, float x, float y);
+MX CreatScaleMx(float x, float y, float sx, float sy);
 
 /*
-将pResult设置为缩放矩阵，x和y分别为水平和垂直方向的缩放比例
+生成一个旋转矩阵并返回，x,y为基准点，Angle为角度，单位为度
 */
-void Matrix2DScale(MX *pResult, float x, float y);
-
-/*
-将pResult设置为旋转矩阵，旋转量为Angle，为度数
-*/
-void Matrix2DRotDeg(MX *pResult, float Angle);
-
-/*
-将pResult设置为旋转矩阵，旋转量为Angle，为弧度
-*/
-void Matrix2DRotRad(MX *pResult, float Angle);
+MX CreatRotateMx(float x, float y, float Angle);
 
 MX MultiMx(MX X, MX Y); //矩阵乘法，M=X*Y，自带创建M矩阵
-
+XY MultiVec(MX T, XY P); //变换矩阵乘向量，返回变换后的向量。
 
 #endif

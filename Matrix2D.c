@@ -1,5 +1,5 @@
 #include "Matrix2D.h"
-
+#define pi 3.14159265
 
 MX CreatMx(float data[], int R, int C, int z){ //创建矩阵，data为一维数据，浮点型，按行遍历。R为行数，C为列数。z为参数，等于0时则创建0矩阵，等于1则按data中数据创建。
 	MX M;
@@ -31,70 +31,73 @@ void FreeMx(float **p, int R){ //释放矩阵，p为首地址，R为列数
 /*
 将pResult设置为单位矩阵
 */
-void Matrix2DIdentity(MX *pResult)
+void SetIdentityMx(MX *pResult)
 {
-
+	int i;
+	int j;
+	for (i = 0; i<(*pResult).R; i++)
+	for (j = 0; j<(*pResult).C; j++)
+	{
+		if (i == j) (*pResult).pMx[i][j] = 1;
+		else (*pResult).pMx[i][j] = 0;
+	}
 }
 
 // ---------------------------------------------------------------------------
 
 /*
-计算pMtx的转置，并将结果放到pResult
+把pResult矩阵设置为其转置
 */
-void Matrix2DTranspose(MX *pResult, MX *pMtx)
+void SetTransposeMx(MX *pResult)
 {
+	int i;
+	int j;
+	int temp;
+	for (i = 0; i<(*pResult).R; i++)
+	for (j = 0; j<(*pResult).C - i; j++)
+	{
+		temp = (*pResult).pMx[j][i];
+		(*pResult).pMx[j][i] = (*pResult).pMx[i][j];
+		(*pResult).pMx[i][j] = temp;
+	}
+}
 
+
+
+/*
+生成一个平移矩阵并返回
+*/
+MX CreatTranslateMx(float x, float y)
+{
+	float data[9] = { 1, 0, x, 0, 1, y, 0, 0, 1 };
+	return CreatMx(data, 3, 3, 1);
 }
 
 // ---------------------------------------------------------------------------
 
 /*
-Result = Mtx0*Mtx1
+生成一个缩放矩阵并返回，x,y为基准点，sx和sy分别为水平和垂直方向的缩放比例，
 */
-void Matrix2DConcat(MX *pResult, MX *pMtx0, MX *pMtx1)
+MX CreatScaleMx(float x, float y,float sx,float sy)
 {
-
+	float data[9] = { sx, 0, x*(1-sx), 0, sy, sy*(1-y), 0, 0, 1 };
+	return CreatMx(data, 3, 3, 1);
 }
 
 // ---------------------------------------------------------------------------
 
 /*
-将pResult设置为平移矩阵，平移位移为x和y
+生成一个旋转矩阵并返回，x,y为基准点，Angle为角度，单位为度
 */
-void Matrix2DTranslate(MX *pResult, float x, float y)
+MX CreatRotateMx(float x, float y, float Angle)
 {
-
+	float a = pi*Angle / 180.0;
+	float data[9] = { cos(a), -sin(a), x*(1 - cos(a)) + y*sin(a), sin(a), cos(a), y*(1 - cos(a)) - x*sin(a), 0, 0, 1 };
+	return CreatMx(data, 3, 3, 1);
 }
 
 // ---------------------------------------------------------------------------
 
-/*
-将pResult设置为缩放矩阵，x和y分别为水平和垂直方向的缩放比例
-*/
-void Matrix2DScale(MX *pResult, float x, float y)
-{
-
-}
-
-// ---------------------------------------------------------------------------
-
-/*
-将pResult设置为旋转矩阵，旋转量为Angle，为度数
-*/
-void Matrix2DRotDeg(MX *pResult, float Angle)
-{
-
-}
-
-// ---------------------------------------------------------------------------
-
-/*
-将pResult设置为旋转矩阵，旋转量为Angle，为弧度
-*/
-void Matrix2DRotRad(MX *pResult, float Angle)
-{
-
-}
 
 // ---------------------------------------------------------------------------
 
@@ -114,9 +117,16 @@ MX MultiMx(MX X, MX Y){ //矩阵乘法，M=X*Y，自带创建M矩阵
 }
 
 // ---------------------------------------------------------------------------
+XY MultiVec(MX T, XY P) //变换矩阵乘向量，返回变换后的向量。
+{
+	XY P0;
+	P0.x = T.pMx[0][0] * P.x + T.pMx[0][1] * P.y + T.pMx[0][2];
+	P0.y = T.pMx[1][0] * P.x + T.pMx[1][1] * P.y + T.pMx[1][2];
+	return P0;
+}
 
-
-/*矩阵乘法测试
+/*
+//测试
 void main()
 {
 float A[6] = { 1.0,2.0,3.0,4.0,5.0,6.0};
@@ -130,5 +140,17 @@ printf("%f\n", M.pMx[0][0]);
 printf("%f\n", M.pMx[1][1]);
 FreeMx(X.pMx, X.R);
 FreeMx(Y.pMx, Y.R);
+FreeMx(M.pMx, M.R); //矩阵乘法结果
+
+//---------------------------------------------
+
+MX T = CreatTranslateMx(1, 1);
+XY pos;
+pos.x = 1; pos.y = 2;
+XY pos0 = MultiVec(T, pos);
+
+printf("%f\n", pos0.x);
+printf("%f\n", pos0.y); //平移向量结果
+
 }
 */
